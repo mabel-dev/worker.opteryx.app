@@ -1,14 +1,14 @@
-from fastapi import FastAPI, Request
-from fastapi import HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter
+from fastapi import Request
 
-app = FastAPI(title="Opteryx Worker")
-
+router = APIRouter(prefix="/api/v1", tags=["v1"])
 
 
-@app.post("/api/v1/submit")
+@router.post("/submit")
 async def submit(request: Request):
+    """Minimal stub: accept and echo job reference."""
     job = await request.json()
-    # Minimal stub: accept and echo job reference.
-
     return {"accepted": True, "job": job.get("statementHandle")}
+
+
+__all__ = ["router"]
