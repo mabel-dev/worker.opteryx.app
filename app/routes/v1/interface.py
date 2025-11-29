@@ -9,11 +9,8 @@ router = APIRouter(prefix="/api/v1", tags=["v1"])
 
 @router.post("/submit")
 async def submit(request: Request):
-    """Minimal stub: accept and echo job reference.
-
-    This endpoint requires a signed JWT in the Authorization header and validates
-    the token's signature and `sub` claim. The expected `sub` value for a GPC
-    signed token is `109805708368864229943`.
+    """
+    Accept job
     """
     claims = validate_token_from_request(request)
     sub = claims.get("sub")
