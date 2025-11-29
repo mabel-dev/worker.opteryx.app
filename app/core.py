@@ -13,11 +13,6 @@ import os
 from typing import Optional
 
 from google.cloud import firestore
-from orso.logging import get_logger
-from orso.logging import set_log_name
-
-set_log_name("opteryx.worker")
-logger = get_logger()
 
 
 def _get_firestore_client() -> Optional[firestore.Client]:
