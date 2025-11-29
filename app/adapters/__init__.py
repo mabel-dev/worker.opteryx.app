@@ -1,0 +1,1 @@
+from .firestore_adapter import get_client_record
