@@ -20,7 +20,9 @@ dependencies = [
     "argon2-cffi>=21.3.0",
     "orjson>=3.9.0",
     "orso",
-    "opteryx==0.26.1"
+    "opteryx==0.26.1",
+    "pyarrow",
+    "zstandard"
 ]
 
 [tool.isort]
