@@ -59,8 +59,12 @@ def process_statement(
 
         # Iterate batches and write parquet files
         part_index = 0
-        for batch in df.to_batches(batch_size=batch_size):
-            table = batch.arrow()
+        # opteryx.query_to_arrow returns a pyarrow.Table. Use pyarrow's
+        # `to_batches` with the `max_chunksize` kwarg and convert the
+        # returned RecordBatch objects into Tables before writing.
+        for batch in df.to_batches(max_chunksize=batch_size):
+            # Convert RecordBatch to Table
+            table = pa.Table.from_batches([batch])
 
             # Compose path with zero-padded indices
             part_name = f"part_{part_index:04d}.parquet"
