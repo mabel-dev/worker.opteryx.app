@@ -63,7 +63,11 @@ def test_submit_valid_gpc_token(monkeypatch):
         secret_store_module, "load_public_key", lambda k: pub_pem if k == kid else None
     )
 
-    payload = {"sub": expected_sub}
+    payload = {
+        "sub": expected_sub,
+        "aud": auth_module.DEFAULT_AUDIENCE,
+        "iss": auth_module.DEFAULT_ISSUER,
+    }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     req = _make_request(
         json.dumps({"statementHandle": "abcd"}).encode(),
@@ -87,7 +91,11 @@ def test_submit_invalid_sub(monkeypatch):
     )
 
     # Create a token with a different subject
-    payload = {"sub": "different-sub"}
+    payload = {
+        "sub": "different-sub",
+        "aud": auth_module.DEFAULT_AUDIENCE,
+        "iss": auth_module.DEFAULT_ISSUER,
+    }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     req = _make_request(
         json.dumps({"statementHandle": "abcd"}).encode(),
@@ -97,6 +105,50 @@ def test_submit_invalid_sub(monkeypatch):
     try:
         asyncio.get_event_loop().run_until_complete(interface_module.submit(req))
         assert False, "Expected HTTPException for invalid subject"
+    except HTTPException:
+        pass
+
+
+def test_validate_token_helper_invalid_audience(monkeypatch):
+    kid = "testkid"
+    priv_pem, pub_pem = _generate_rsa_keypair()
+
+    monkeypatch.setattr(
+        secret_store_module, "load_public_key", lambda k: pub_pem if k == kid else None
+    )
+
+    # Use a different audience than expected
+    payload = {
+        "sub": auth_module.GPC_SUBJECT,
+        "aud": "https://fraud.example",
+        "iss": auth_module.DEFAULT_ISSUER,
+    }
+    token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
+    try:
+        auth_module.validate_token(token)
+        assert False, "Expected HTTPException for invalid audience"
+    except HTTPException:
+        pass
+
+
+def test_validate_token_helper_invalid_issuer(monkeypatch):
+    kid = "testkid"
+    priv_pem, pub_pem = _generate_rsa_keypair()
+
+    monkeypatch.setattr(
+        secret_store_module, "load_public_key", lambda k: pub_pem if k == kid else None
+    )
+
+    # Use a different issuer than expected
+    payload = {
+        "sub": auth_module.GPC_SUBJECT,
+        "aud": auth_module.DEFAULT_AUDIENCE,
+        "iss": "https://evil.example",
+    }
+    token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
+    try:
+        auth_module.validate_token(token)
+        assert False, "Expected HTTPException for invalid issuer"
     except HTTPException:
         pass
 
@@ -122,7 +174,11 @@ def test_validate_token_helper(monkeypatch):
         secret_store_module, "load_public_key", lambda k: pub_pem if k == kid else None
     )
 
-    payload = {"sub": expected_sub}
+    payload = {
+        "sub": expected_sub,
+        "aud": auth_module.DEFAULT_AUDIENCE,
+        "iss": auth_module.DEFAULT_ISSUER,
+    }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     claims = auth_module.validate_token(token)
     assert claims.get("sub") == expected_sub
@@ -136,7 +192,11 @@ def test_validate_token_helper_invalid_sub(monkeypatch):
         secret_store_module, "load_public_key", lambda k: pub_pem if k == kid else None
     )
 
-    payload = {"sub": "different-sub"}
+    payload = {
+        "sub": "different-sub",
+        "aud": auth_module.DEFAULT_AUDIENCE,
+        "iss": auth_module.DEFAULT_ISSUER,
+    }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     try:
         auth_module.validate_token(token)
