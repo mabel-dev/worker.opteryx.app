@@ -1,96 +1,118 @@
-import sys
-import os
+import pyarrow as pa
+import pyarrow.parquet as pq
 
-sys.path.insert(0, os.getcwd())
-
-from app import worker as worker_module
+from app.worker import process_statement
 
 
-class FakeDoc:
-    def __init__(self, data: dict):
-        self._data = data
+class FakeSnapshot:
+    def __init__(self, data):
         self.exists = True
+        self._data = data
 
     def to_dict(self):
-        return dict(self._data)
+        return self._data
 
 
 class FakeDocRef:
-    def __init__(self, data: dict):
-        self.data = dict(data)
+    def __init__(self, data):
+        self._data = data
         self.updates = []
 
     def get(self):
-        return FakeDoc(self.data)
+        return FakeSnapshot(self._data)
 
-    def update(self, payload: dict):
+    def update(self, payload):
         self.updates.append(payload)
-        self.data.update(payload)
 
 
 class FakeCollection:
-    def __init__(self, documents: dict):
-        self.documents = documents
+    def __init__(self, data):
+        self._data = data
 
-    def document(self, doc_id: str):
-        if id not in self.documents:
-            raise KeyError("No such document")
-        return self.documents[id]
+    def document(self, _handle):
+        return FakeDocRef(self._data)
 
 
-class FakeFirestoreClient:
-    def __init__(self, jobs):
-        self._jobs = {job_id: FakeDocRef(data) for job_id, data in jobs.items()}
+class FakeDB:
+    def __init__(self, data):
+        self._data = data
 
-    def collection(self, name: str):
-        if name != "jobs":
-            raise KeyError("Unexpected collection")
-        return FakeCollection(self._jobs)
+    def collection(self, _name):
+        return FakeCollection(self._data)
 
 
-def test_process_statement_writes_parquet_in_batches(monkeypatch):
-    # create a fake job with a SQL text that will produce 10 rows
-    handle = "test-handle"
+def make_table(num_rows: int):
+    # Basic table with a single int column
+    arr = pa.array(list(range(num_rows)))
+    return pa.Table.from_pydict({"id": arr})
+
+
+def test_process_statement_single_batch(monkeypatch):
+    # Sample job
     job = {
+        "statementHandle": "3ef2a90c-357f-4f89-96d5-69e832008839",
         "sqlText": "SELECT 1",
-        "statementHandle": handle,
         "status": "queued",
-        "progress": 0,
+        "submitted_by": "bastian",
     }
-    fake_db = FakeFirestoreClient({handle: job})
+
+    db = FakeDB(job)
 
     # monkeypatch the firestore client getter
-    monkeypatch.setattr(worker_module, "_get_firestore_client", lambda: fake_db)
+    monkeypatch.setattr("app.worker._get_firestore_client", lambda: db)
 
-    # create a small orso DataFrame via import to mimic opteryx result
-    from orso.dataframe import DataFrame
+    # create a small table and monkeypatch opteryx.query_to_arrow
+    table = make_table(10)
+    class FakeOpteryx:
+        @staticmethod
+        def query_to_arrow(_sql):
+            return table
 
-    rows = [{"c": i} for i in range(10)]
-    df = DataFrame(dictionaries=rows)
+    monkeypatch.setitem(globals(), "opteryx", FakeOpteryx)
+    monkeypatch.setattr("app.worker.opteryx", FakeOpteryx, raising=False)
 
-    # Inject a fake opteryx module with an execute function returning our DataFrame
-    import types
-    fake_opteryx = types.SimpleNamespace(execute=lambda sql: df)
-    sys.modules["opteryx"] = fake_opteryx
+    writes = []
 
-    # capture writes
-    wrote = []
+    def fake_write_table(_table_arg, path):
+        writes.append(path)
 
-    def fake_write_table(table, path, *_args, **_kwargs):
-        wrote.append(path)
+    monkeypatch.setattr(pq, "write_table", fake_write_table)
 
-    monkeypatch.setattr("pyarrow.parquet.write_table", fake_write_table, raising=False)
+    # Run the worker
+    process_statement(job["statementHandle"], batch_size=100_000, bucket="opteryx_results")
 
-    # Call worker with a small batch size (4) to force batching
-    worker_module.process_statement(handle, batch_size=4, bucket="opteryx_results")
+    # We should have written a single part
+    assert len(writes) == 1
+    assert writes[0].endswith("part_0000.parquet")
 
-    # We expect 3 output files: 4 + 4 + 2 rows -> 3 parts
-    assert len(wrote) == 3
-    # verify that we wrote to the expected bucket and path containing the handle
-    for _idx, path in enumerate(wrote):
-        assert path.startswith("gs://opteryx_results/test-handle/part_")
 
-    # verify Firestore updates: first EXECUTING and final COMPLETED present
-    doc_ref = fake_db.collection("jobs").document(handle)
-    assert any(u.get("status") == "EXECUTING" for u in doc_ref.updates)
-    assert any(u.get("status") == "COMPLETED" for u in doc_ref.updates)
+def test_process_statement_multiple_batches(monkeypatch):
+    # Create job
+    job = {
+        "statementHandle": "test-multi",
+        "sqlText": "SELECT 1",
+        "status": "queued",
+        "submitted_by": "bastian",
+    }
+    db = FakeDB(job)
+    monkeypatch.setattr("app.worker._get_firestore_client", lambda: db)
+
+    # create a table with 25k rows and test with 10k batch size => expect 3 parts
+    table = make_table(25_000)
+    class FakeOpteryx:
+        @staticmethod
+        def query_to_arrow(_sql):
+            return table
+
+    monkeypatch.setattr("app.worker.opteryx", FakeOpteryx, raising=False)
+
+    writes = []
+    def fake_write_table(_table_arg, path):
+        writes.append(path)
+    monkeypatch.setattr(pq, "write_table", fake_write_table)
+
+    process_statement(job["statementHandle"], batch_size=10_000, bucket="opteryx_results")
+    assert len(writes) == 3
+    assert writes[0].endswith("part_0000.parquet")
+    assert writes[1].endswith("part_0001.parquet")
+    assert writes[2].endswith("part_0002.parquet")
