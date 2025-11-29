@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from fastapi import Request
 
 from app.auth import validate_token_from_request
+from app.worker import process_statement
 
 router = APIRouter(prefix="/api/v1", tags=["v1"])
 
@@ -20,7 +21,10 @@ async def submit(request: Request):
         raise HTTPException(status_code=401, detail="Token subject mismatch")
 
     job = await request.json()
-    return {"accepted": True, "job": job.get("statementHandle"), "jwt_sub": sub}
+
+    process_statement(job.get("statementHandle"))
+
+    return {"status": "completed"}
 
 
 __all__ = ["router"]
