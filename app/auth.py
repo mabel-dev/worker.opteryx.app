@@ -69,6 +69,7 @@ def validate_token(token: str, expected_sub: str = GPC_SUBJECT) -> dict:
 def validate_token_from_request(request: Request, expected_sub: str = GPC_SUBJECT) -> dict:
     """Convenience wrapper that extracts the token from the request and validates it."""
     token = _extract_bearer_token(request)
+    print("extracted token:", token)
     if not token:
         raise HTTPException(status_code=401, detail="Authorization missing or invalid")
     return validate_token(token, expected_sub=expected_sub)

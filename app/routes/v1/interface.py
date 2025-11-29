@@ -16,6 +16,7 @@ async def submit(request: Request):
     sub = claims.get("sub")
     # Validate expected GPC subject
     if sub != "109805708368864229943":
+        print("sub mismatch:", sub)
         raise HTTPException(status_code=401, detail="Token subject mismatch")
 
     job = await request.json()
