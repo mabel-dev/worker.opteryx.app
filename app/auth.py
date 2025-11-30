@@ -39,7 +39,7 @@ def validate_token(token: str) -> dict:
         claims = jose_jwt.get_unverified_claims(token)
     except JWTError as exc:
         raise HTTPException(status_code=401, detail="Invalid token claims") from exc
-    
+
     # Validate issuer
     iss = claims.get("iss")
     if iss != EXPECTED_ISSUER:
@@ -53,6 +53,7 @@ def validate_token(token: str) -> dict:
     if sub != GPC_SUBJECT:
         raise HTTPException(status_code=401, detail="Token subject mismatch")
     return claims
+
 
 def validate_token_from_request(request: Request) -> dict:
     """Convenience wrapper that extracts the token from the request and validates it."""

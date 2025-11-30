@@ -2,6 +2,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from app.worker import process_statement
+import json
 
 
 class FakeSnapshot:
@@ -63,6 +64,7 @@ def test_process_statement_single_batch(monkeypatch):
 
     # create a small table and monkeypatch opteryx.query_to_arrow
     table = make_table(10)
+
     class FakeOpteryx:
         @staticmethod
         def query_to_arrow(_sql):
@@ -73,7 +75,7 @@ def test_process_statement_single_batch(monkeypatch):
 
     writes = []
 
-    def fake_write_table(_table_arg, path):
+    def fake_write_table(_table_arg, path, **_kwargs):
         writes.append(path)
 
     monkeypatch.setattr(pq, "write_table", fake_write_table)
@@ -99,6 +101,7 @@ def test_process_statement_multiple_batches(monkeypatch):
 
     # create a table with 25k rows and test with 10k batch size => expect 3 parts
     table = make_table(25_000)
+
     class FakeOpteryx:
         @staticmethod
         def query_to_arrow(_sql):
@@ -107,8 +110,10 @@ def test_process_statement_multiple_batches(monkeypatch):
     monkeypatch.setattr("app.worker.opteryx", FakeOpteryx, raising=False)
 
     writes = []
-    def fake_write_table(_table_arg, path):
+
+    def fake_write_table(_table_arg, path, **_kwargs):
         writes.append(path)
+
     monkeypatch.setattr(pq, "write_table", fake_write_table)
 
     process_statement(job["statementHandle"], batch_size=10_000, bucket="opteryx_results")
@@ -116,3 +121,82 @@ def test_process_statement_multiple_batches(monkeypatch):
     assert writes[0].endswith("part_0000.parquet")
     assert writes[1].endswith("part_0001.parquet")
     assert writes[2].endswith("part_0002.parquet")
+
+
+def test_manifest_written(monkeypatch):
+    # Create job
+    job = {
+        "statementHandle": "manifest-test",
+        "sqlText": "SELECT 1",
+        "status": "queued",
+        "submitted_by": "bastian",
+    }
+    db = FakeDB(job)
+    monkeypatch.setattr("app.worker._get_firestore_client", lambda: db)
+
+    # create a small table and monkeypatch opteryx.query_to_arrow
+    table = make_table(10)
+
+    class FakeOpteryx:
+        @staticmethod
+        def query_to_arrow(_sql):
+            return table
+
+    monkeypatch.setattr("app.worker.opteryx", FakeOpteryx, raising=False)
+
+    writes = []
+
+    def fake_write_table(_table_arg, path, **_kwargs):
+        writes.append(path)
+
+    monkeypatch.setattr(pq, "write_table", fake_write_table)
+
+    # Fake filesystem for manifest write capture
+    class FakeOutputStream:
+        def __init__(self, path, storage):
+            self.path = path
+            self.storage = storage
+            self.data = b""
+
+        def write(self, b):
+            self.data += b
+
+        def close(self):
+            pass
+
+    class FakeFS:
+        def __init__(self):
+            self.writes = {}
+
+        def open_output_stream(self, path):
+            out = FakeOutputStream(path, self.writes)
+            self.writes[path] = out
+            return out
+
+    fake_fs = FakeFS()
+
+    def fake_from_uri(uri):
+        # Return our fake filesystem and a path relative to it (strip scheme)
+        path = uri.split("gs://", 1)[1]
+        return fake_fs, path
+
+    monkeypatch.setattr(pa.fs.FileSystem, "from_uri", fake_from_uri)
+
+    process_statement(job["statementHandle"], batch_size=100_000, bucket="opteryx_results")
+
+    # Manifest should have been written in addition to a part file
+    assert any(p.endswith("part_0000.parquet") for p in writes)
+    # The manifest path should end with manifest.json; it is captured in the fake FS writes
+    # Find the fake FS used above by calling from_uri again
+    _, path = pa.fs.FileSystem.from_uri(
+        f"gs://opteryx_results/{job['statementHandle']}/manifest.json"
+    )
+    assert "manifest.json" in path
+    manifest_out = fake_fs.writes.get(path)
+    assert manifest_out is not None
+    manifest = json.loads(manifest_out.data.decode("utf-8"))
+    assert manifest["total_parts"] == 1
+    assert manifest["total_rows"] == 10
+    assert "columns" in manifest
+    assert manifest["columns"][0]["name"] == "id"
+    assert "int" in manifest["columns"][0]["type"]

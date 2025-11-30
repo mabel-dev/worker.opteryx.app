@@ -27,8 +27,6 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 status = 500
                 response = Response(status_code=status)
         finally:
-            
-
             duration_ms = int((time.time() - start) * 1000)
             # Avoid logging sensitive headers
             xff = request.headers.get("x-forwarded-for", "-")
@@ -76,7 +74,12 @@ class AuditMiddleware(BaseHTTPMiddleware):
                     elif hasattr(response, "body_iterator"):
                         chunks = [c async for c in response.body_iterator]
                         body_bytes = b"".join(chunks)
-                        response = Response(content=body_bytes, status_code=response.status_code, headers=dict(response.headers), media_type=response.media_type)
+                        response = Response(
+                            content=body_bytes,
+                            status_code=response.status_code,
+                            headers=dict(response.headers),
+                            media_type=response.media_type,
+                        )
 
                 if body_bytes:
                     try:

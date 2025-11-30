@@ -66,9 +66,9 @@ def test_submit_valid_gpc_token(monkeypatch):
     )
 
     payload = {
-           "sub": expected_sub,
-           "aud": auth_module.EXPECTED_AUDIENCE,
-           "iss": auth_module.EXPECTED_ISSUER,
+        "sub": expected_sub,
+        "aud": auth_module.EXPECTED_AUDIENCE,
+        "iss": auth_module.EXPECTED_ISSUER,
     }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     req = _make_request(
@@ -94,9 +94,9 @@ def test_submit_invalid_sub(monkeypatch):
 
     # Create a token with a different subject
     payload = {
-           "sub": "different-sub",
-           "aud": auth_module.EXPECTED_AUDIENCE,
-           "iss": auth_module.EXPECTED_ISSUER,
+        "sub": "different-sub",
+        "aud": auth_module.EXPECTED_AUDIENCE,
+        "iss": auth_module.EXPECTED_ISSUER,
     }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     req = _make_request(
@@ -121,9 +121,9 @@ def test_validate_token_helper_invalid_audience(monkeypatch):
 
     # Use a different audience than expected
     payload = {
-           "sub": auth_module.GPC_SUBJECT,
-           "aud": "https://fraud.example",
-           "iss": auth_module.EXPECTED_ISSUER,
+        "sub": auth_module.GPC_SUBJECT,
+        "aud": "https://fraud.example",
+        "iss": auth_module.EXPECTED_ISSUER,
     }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     try:
@@ -143,9 +143,9 @@ def test_validate_token_helper_invalid_issuer(monkeypatch):
 
     # Use a different issuer than expected
     payload = {
-           "sub": auth_module.GPC_SUBJECT,
-           "aud": auth_module.EXPECTED_AUDIENCE,
-           "iss": "https://evil.example",
+        "sub": auth_module.GPC_SUBJECT,
+        "aud": auth_module.EXPECTED_AUDIENCE,
+        "iss": "https://evil.example",
     }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     try:
@@ -177,9 +177,9 @@ def test_validate_token_helper(monkeypatch):
     )
 
     payload = {
-           "sub": expected_sub,
-           "aud": auth_module.EXPECTED_AUDIENCE,
-           "iss": auth_module.EXPECTED_ISSUER,
+        "sub": expected_sub,
+        "aud": auth_module.EXPECTED_AUDIENCE,
+        "iss": auth_module.EXPECTED_ISSUER,
     }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     claims = auth_module.validate_token(token)
@@ -195,9 +195,9 @@ def test_validate_token_helper_invalid_sub(monkeypatch):
     )
 
     payload = {
-           "sub": "different-sub",
-           "aud": auth_module.EXPECTED_AUDIENCE,
-           "iss": auth_module.EXPECTED_ISSUER,
+        "sub": "different-sub",
+        "aud": auth_module.EXPECTED_AUDIENCE,
+        "iss": auth_module.EXPECTED_ISSUER,
     }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     try:
@@ -213,12 +213,14 @@ def test_audit_middleware_receives_audit_payload(monkeypatch):
     priv_pem, pub_pem = _generate_rsa_keypair()
 
     # Monkeypatch secret_store.load_public_key to return our generated public key
-    monkeypatch.setattr(secret_store_module, "load_public_key", lambda k: pub_pem if k == kid else None)
+    monkeypatch.setattr(
+        secret_store_module, "load_public_key", lambda k: pub_pem if k == kid else None
+    )
 
     payload = {
-           "sub": expected_sub,
-           "aud": auth_module.EXPECTED_AUDIENCE,
-           "iss": auth_module.EXPECTED_ISSUER,
+        "sub": expected_sub,
+        "aud": auth_module.EXPECTED_AUDIENCE,
+        "iss": auth_module.EXPECTED_ISSUER,
     }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
 
