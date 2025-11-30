@@ -17,7 +17,7 @@ dependencies = [
     "google-cloud-secret-manager>=2.19.0",
     "google-cloud-firestore>=2.10.0",
     "google-cloud-tasks>=2.11.0",
-    "argon2-cffi>=21.3.0",
+    "google-cloud-storage",
     "orjson>=3.9.0",
     "orso",
     "opteryx==0.26.1",

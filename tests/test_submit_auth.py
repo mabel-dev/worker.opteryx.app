@@ -15,6 +15,8 @@ from app.routes.v1 import interface as interface_module
 from app import auth as auth_module
 from fastapi import HTTPException
 from app import secret_store as secret_store_module
+from app.main import app as fastapi_app
+from starlette.testclient import TestClient
 
 
 def _generate_rsa_keypair() -> tuple[str, str]:
@@ -64,9 +66,9 @@ def test_submit_valid_gpc_token(monkeypatch):
     )
 
     payload = {
-        "sub": expected_sub,
-        "aud": auth_module.DEFAULT_AUDIENCE,
-        "iss": auth_module.DEFAULT_ISSUER,
+           "sub": expected_sub,
+           "aud": auth_module.EXPECTED_AUDIENCE,
+           "iss": auth_module.EXPECTED_ISSUER,
     }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     req = _make_request(
@@ -92,9 +94,9 @@ def test_submit_invalid_sub(monkeypatch):
 
     # Create a token with a different subject
     payload = {
-        "sub": "different-sub",
-        "aud": auth_module.DEFAULT_AUDIENCE,
-        "iss": auth_module.DEFAULT_ISSUER,
+           "sub": "different-sub",
+           "aud": auth_module.EXPECTED_AUDIENCE,
+           "iss": auth_module.EXPECTED_ISSUER,
     }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     req = _make_request(
@@ -119,9 +121,9 @@ def test_validate_token_helper_invalid_audience(monkeypatch):
 
     # Use a different audience than expected
     payload = {
-        "sub": auth_module.GPC_SUBJECT,
-        "aud": "https://fraud.example",
-        "iss": auth_module.DEFAULT_ISSUER,
+           "sub": auth_module.GPC_SUBJECT,
+           "aud": "https://fraud.example",
+           "iss": auth_module.EXPECTED_ISSUER,
     }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     try:
@@ -141,9 +143,9 @@ def test_validate_token_helper_invalid_issuer(monkeypatch):
 
     # Use a different issuer than expected
     payload = {
-        "sub": auth_module.GPC_SUBJECT,
-        "aud": auth_module.DEFAULT_AUDIENCE,
-        "iss": "https://evil.example",
+           "sub": auth_module.GPC_SUBJECT,
+           "aud": auth_module.EXPECTED_AUDIENCE,
+           "iss": "https://evil.example",
     }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     try:
@@ -175,9 +177,9 @@ def test_validate_token_helper(monkeypatch):
     )
 
     payload = {
-        "sub": expected_sub,
-        "aud": auth_module.DEFAULT_AUDIENCE,
-        "iss": auth_module.DEFAULT_ISSUER,
+           "sub": expected_sub,
+           "aud": auth_module.EXPECTED_AUDIENCE,
+           "iss": auth_module.EXPECTED_ISSUER,
     }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     claims = auth_module.validate_token(token)
@@ -193,9 +195,9 @@ def test_validate_token_helper_invalid_sub(monkeypatch):
     )
 
     payload = {
-        "sub": "different-sub",
-        "aud": auth_module.DEFAULT_AUDIENCE,
-        "iss": auth_module.DEFAULT_ISSUER,
+           "sub": "different-sub",
+           "aud": auth_module.EXPECTED_AUDIENCE,
+           "iss": auth_module.EXPECTED_ISSUER,
     }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     try:
@@ -203,3 +205,46 @@ def test_validate_token_helper_invalid_sub(monkeypatch):
         assert False, "Expected HTTPException for invalid subject"
     except HTTPException:
         pass
+
+
+def test_audit_middleware_receives_audit_payload(monkeypatch):
+    kid = "testkid"
+    expected_sub = "109805708368864229943"
+    priv_pem, pub_pem = _generate_rsa_keypair()
+
+    # Monkeypatch secret_store.load_public_key to return our generated public key
+    monkeypatch.setattr(secret_store_module, "load_public_key", lambda k: pub_pem if k == kid else None)
+
+    payload = {
+           "sub": expected_sub,
+           "aud": auth_module.EXPECTED_AUDIENCE,
+           "iss": auth_module.EXPECTED_ISSUER,
+    }
+    token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
+
+    # Prevent heavy work in worker.process_statement
+    monkeypatch.setattr("app.worker.process_statement", lambda handle: None)
+
+    captured = {}
+
+    class FakeLogger:
+        def audit(self, p):
+            captured["payload"] = p
+
+        def error(self, *_a, **_k):
+            pass
+
+    monkeypatch.setattr("app.middleware.audit.logger", FakeLogger(), raising=False)
+
+    # Use TestClient to go through the full middleware stack
+    client = TestClient(fastapi_app)
+    res = client.post(
+        "/api/v1/submit",
+        json={"statementHandle": "abcd"},
+        headers={"authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 200
+    # The middleware should have captured the response 'audit' object
+    assert "payload" in captured
+    assert captured["payload"].get("path") == "/api/v1/submit"
+    assert captured["payload"].get("response_audit") == {"job": "abcd", "jwt_sub": expected_sub}
