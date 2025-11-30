@@ -66,7 +66,7 @@ def process_statement(
         with OpteryxConnection() as conn:
             cursor = conn.cursor()
             df = cursor.execute_to_arrow(sql)
-            statistics = cursor.statistics
+            statistics = cursor.stats
 
 
         # Iterate batches and write parquet files
