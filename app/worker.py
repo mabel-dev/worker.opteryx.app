@@ -2,17 +2,29 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Optional
 
 from typing import Any
 
 import pyarrow as pa
 import pyarrow.parquet as pq
+from google.cloud import firestore
 
 from app.core import _get_firestore_client
 
 logger = logging.getLogger(__name__)
 
+class OpteryxConnection:
+    def __init__(self):
+        self.connection = None
+
+    def __enter__(self):
+        import opteryx  # local import so module doesn't become a hard dependency for tests
+        self.connection = opteryx.connect()
+        return self.connection
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.connection:
+            self.connection.close()
 
 def _doc_ref_for_handle(db: Any, handle: str):
     return db.collection("jobs").document(handle)
@@ -28,9 +40,8 @@ def process_statement(
     and write results as parquet files into Google Cloud Storage in batches of
     `batch_size` rows.
 
-    On success the Firestore document status will be set to COMPLETED and
-    progress set to 100. On errors, the status will be set to FAILED and the
-    error stored on the document.
+    On success the Firestore document status will be set to COMPLETED.
+    On errors, the status will be set to FAILED and the error stored on the document.
     """
     db = _get_firestore_client()
     if db is None:
@@ -48,14 +59,15 @@ def process_statement(
         return
 
     # update to EXECUTING
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(tz=datetime.timezone.utc)
     doc_ref.update({"status": "EXECUTING", "updated_at": now, "progress": 0})
 
     try:
-        import opteryx  # local import so module doesn't become a hard dependency for tests
+        with OpteryxConnection() as conn:
+            cursor = conn.cursor()
+            df = cursor.execute_to_arrow(sql)
+            statistics = cursor.statistics
 
-        # Run query
-        df = opteryx.query_to_arrow(sql)
 
         # Iterate batches and write parquet files
         part_index = 0
@@ -76,15 +88,13 @@ def process_statement(
             pq.write_table(table, gcs_path)
 
             part_index += 1
-            # update progress as a simple heuristic
-            doc_ref.update({"progress": part_index})
 
-        # If we didn't write any parts, still mark as completed (0 rows)
-        doc_ref.update({"status": "COMPLETED", "progress": 100, "updated_at": datetime.datetime.utcnow()})
+        doc_ref.update({"status": "COMPLETED", "updated_at": firestore.SERVER_TIMESTAMP, "statistics": statistics})
+        return statistics
 
     except Exception as exc:  # pragma: no cover - errors bubble for production
         logger.exception("Error executing statement %s", statement_handle)
-        doc_ref.update({"status": "FAILED", "error": str(exc), "updated_at": datetime.datetime.utcnow()})
+        doc_ref.update({"status": "FAILED", "error": str(exc), "updated_at": firestore.SERVER_TIMESTAMP})
         raise
 
 

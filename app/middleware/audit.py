@@ -27,6 +27,8 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 status = 500
                 response = Response(status_code=status)
         finally:
+            
+
             duration_ms = int((time.time() - start) * 1000)
             # Avoid logging sensitive headers
             xff = request.headers.get("x-forwarded-for", "-")
@@ -56,8 +58,39 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 except JWTError:
                     # best-effort: ignore any parsing errors
                     payload["jwt_present"] = True
+
             print(payload)
             # Prefer a structured audit call; fall back to info if not available
+            # Inspect the response body: if the response is JSON and contains an
+            # `audit` object, include that in the audit payload so the logger
+            # has access to structured response metadata.
+            try:
+                content_type = response.headers.get("content-type", "")
+                body_bytes = None
+                if "application/json" in content_type:
+                    # Some responses expose `body` attribute
+                    if hasattr(response, "body") and response.body is not None:
+                        body_bytes = response.body
+                    # Some responses are streaming and expose a body_iterator;
+                    # consume and replace the iterator with a rebuilt response.
+                    elif hasattr(response, "body_iterator"):
+                        chunks = [c async for c in response.body_iterator]
+                        body_bytes = b"".join(chunks)
+                        response = Response(content=body_bytes, status_code=response.status_code, headers=dict(response.headers), media_type=response.media_type)
+
+                if body_bytes:
+                    try:
+                        import orjson as _orjson  # local import to keep deps explicit
+
+                        parsed = _orjson.loads(body_bytes)
+                        if isinstance(parsed, dict) and "audit" in parsed:
+                            payload["response_audit"] = parsed["audit"]
+                    except (TypeError, ValueError):
+                        # best-effort: do not crash auditing if parsing fails
+                        pass
+            except (AttributeError, RuntimeError, TypeError):
+                # best-effort: no-op if we cannot inspect response body
+                pass
             try:
                 logger.audit(payload)
             except AttributeError as exc_attr:
