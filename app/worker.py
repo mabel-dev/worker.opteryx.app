@@ -8,7 +8,6 @@ from typing import Tuple
 
 import opteryx
 import orjson
-import orso
 import pyarrow as pa
 import pyarrow.parquet as pq
 from google.cloud import firestore
@@ -161,17 +160,22 @@ def process_statement(
             _write_parquet_table(last_table, gcs_path)
             parts.append((part_name, buffered_rows))
 
+        print(type(cursor))
+        print(type(cursor.schema))
+        print(type(cursor.schema.columns))
+
         # Write manifest with metadata next to the parquet files
         manifest = {
             "parts": [
-                {"path": f"{statement_handle}/{pname}", "rows": rows} for pname, rows in parts
+                {"path": f"gs://{bucket}/{statement_handle}/{pname}", "rows": rows}
+                for pname, rows in parts
             ],
             "total_parts": len(parts),
             "total_rows": sum(rows for _, rows in parts),
             "compression": "zstd",
             "compression_level": 2,
             "write_statistics": False,
-            "columns": [{"name": f.name, "type": str(f.type.value)} for f in cursor.schema.columns],
+            "columns": [{"name": f.name, "type": f.type} for f in cursor.schema.columns],
             "created_at": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
         }
         manifest_path = f"gs://{bucket}/{statement_handle}/manifest.json"

@@ -16,10 +16,10 @@ class AuditMiddleware(BaseHTTPMiddleware):
         try:
             response: Response = await call_next(request)
             status = response.status_code
-            message = "okay"
+            detail = "okay"
         except Exception as exc:
             # Use exception detail if available (e.g. HTTPException.detail)
-            message = getattr(exc, "detail", str(exc))
+            detail = getattr(exc, "detail", str(exc))
             if hasattr(exc, "status_code"):
                 status = exc.status_code
                 response = Response(status_code=status)
@@ -37,7 +37,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 "duration_ms": duration_ms,
                 "from": xff,
                 "timestamp": int(time.time()),
-                "message": message,
+                "detail": detail,
             }
             # If a bearer token is present, extract the 'sub' (identity) claim
             # via unverified claims and include it in the audit payload. We do not
@@ -57,7 +57,6 @@ class AuditMiddleware(BaseHTTPMiddleware):
                     # best-effort: ignore any parsing errors
                     payload["jwt_present"] = True
 
-            print(payload)
             # Prefer a structured audit call; fall back to info if not available
             # Inspect the response body: if the response is JSON and contains an
             # `audit` object, include that in the audit payload so the logger
@@ -94,9 +93,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
             except (AttributeError, RuntimeError, TypeError):
                 # best-effort: no-op if we cannot inspect response body
                 pass
-            try:
-                logger.audit(payload)
-            except AttributeError as exc_attr:
-                # Best-effort: audit method missing - log at error level
-                logger.error(f"audit payload fallback: {payload} - error={exc_attr}")
+
+            logger.audit(payload)
+
         return response
