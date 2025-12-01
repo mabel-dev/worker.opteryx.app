@@ -162,7 +162,7 @@ def process_statement(
 
         print(type(cursor))
         print(type(cursor.schema))
-        print(type(cursor.schema.columns))
+        print(cursor.schema)
 
         # Write manifest with metadata next to the parquet files
         manifest = {
