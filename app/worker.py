@@ -8,6 +8,7 @@ from typing import Tuple
 
 import opteryx
 import orjson
+import orso
 import pyarrow as pa
 import pyarrow.parquet as pq
 from google.cloud import firestore
@@ -170,7 +171,7 @@ def process_statement(
             "compression": "zstd",
             "compression_level": 2,
             "write_statistics": False,
-            "columns": [{"name": f.name, "type": str(f.type)} for f in df.schema],
+            "columns": [{"name": f.name, "type": str(f.type.value)} for f in cursor.schema.columns],
             "created_at": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
         }
         manifest_path = f"gs://{bucket}/{statement_handle}/manifest.json"
