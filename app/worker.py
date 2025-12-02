@@ -10,9 +10,8 @@ import opteryx
 import orjson
 import pyarrow as pa
 import pyarrow.parquet as pq
-from google.cloud import firestore
-
 from app.core import _get_firestore_client
+from google.cloud import firestore
 
 logger = logging.getLogger(__name__)
 
@@ -110,11 +109,24 @@ def process_statement(
     job = doc.to_dict()
     sql = job.get("sqlText")
     if not sql:
-        doc_ref.update({"status": "FAILED", "error": "missing sqlText", "updated_at": firestore.SERVER_TIMESTAMP, "finished_at": firestore.SERVER_TIMESTAMP})
+        doc_ref.update(
+            {
+                "status": "FAILED",
+                "error": "missing sqlText",
+                "updated_at": firestore.SERVER_TIMESTAMP,
+                "finished_at": firestore.SERVER_TIMESTAMP,
+            }
+        )
         return
 
     # update to EXECUTING
-    doc_ref.update({"status": "EXECUTING", "updated_at": firestore.SERVER_TIMESTAMP, "started_at": firestore.SERVER_TIMESTAMP})
+    doc_ref.update(
+        {
+            "status": "EXECUTING",
+            "updated_at": firestore.SERVER_TIMESTAMP,
+            "started_at": firestore.SERVER_TIMESTAMP,
+        }
+    )
 
     try:
         with OpteryxConnection() as conn:
@@ -162,10 +174,7 @@ def process_statement(
         # Write manifest with metadata next to the parquet files
         manifest = {
             "parts": [
-                {
-                    "path": f"gs://{bucket}/{statement_handle}/{pname}", 
-                    "rows": rows
-                }
+                {"path": f"gs://{bucket}/{statement_handle}/{pname}", "rows": rows}
                 for pname, rows in parts
             ],
             "total_parts": len(parts),
@@ -192,7 +201,12 @@ def process_statement(
     except Exception as exc:  # pragma: no cover - errors bubble for production
         logger.exception("Error executing statement %s", statement_handle)
         doc_ref.update(
-            {"status": "FAILED", "error": str(exc), "updated_at": firestore.SERVER_TIMESTAMP, "finished_at": firestore.SERVER_TIMESTAMP}
+            {
+                "status": "FAILED",
+                "error": str(exc),
+                "updated_at": firestore.SERVER_TIMESTAMP,
+                "finished_at": firestore.SERVER_TIMESTAMP,
+            }
         )
         raise
 

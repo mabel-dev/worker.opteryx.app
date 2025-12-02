@@ -1,10 +1,9 @@
+from app.auth import validate_token_from_request
+from app.worker import process_statement
 from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import Request
 from fastapi.responses import ORJSONResponse
-
-from app.auth import validate_token_from_request
-from app.worker import process_statement
 
 router = APIRouter(prefix="/api/v1", tags=["v1"])
 
@@ -25,7 +24,7 @@ async def submit(request: Request):
     job = await request.json()
 
     # Process the statement (may be monkeypatched in tests)
-    execution_summary = process_statement(job.get("statementHandle"))
+    execution_summary = process_statement(job.get("execution_id"))
 
     return execution_summary
 

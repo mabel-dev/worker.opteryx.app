@@ -1,22 +1,21 @@
+import asyncio
 import json
 import os
 import sys
 
-sys.path.insert(0, os.getcwd())
-
-import asyncio
-from starlette.requests import Request as StarletteRequest
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.backends import default_backend
-from jose import jwt as jose_jwt
-
-from app.routes.v1 import interface as interface_module
 from app import auth as auth_module
-from fastapi import HTTPException
 from app import secret_store as secret_store_module
 from app.main import app as fastapi_app
+from app.routes.v1 import interface as interface_module
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from fastapi import HTTPException
+from jose import jwt as jose_jwt
+from starlette.requests import Request as StarletteRequest
 from starlette.testclient import TestClient
+
+sys.path.insert(0, os.getcwd())
 
 
 def _generate_rsa_keypair() -> tuple[str, str]:
@@ -72,7 +71,7 @@ def test_submit_valid_gpc_token(monkeypatch):
     }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     req = _make_request(
-        json.dumps({"statementHandle": "abcd"}).encode(),
+        json.dumps({"execution_id": "abcd"}).encode(),
         [(b"authorization", f"Bearer {token}".encode()), (b"content-type", b"application/json")],
     )
     # Call the async endpoint directly
@@ -100,7 +99,7 @@ def test_submit_invalid_sub(monkeypatch):
     }
     token = jose_jwt.encode(payload, priv_pem, algorithm="RS256", headers={"kid": kid})
     req = _make_request(
-        json.dumps({"statementHandle": "abcd"}).encode(),
+        json.dumps({"execution_id": "abcd"}).encode(),
         [(b"authorization", f"Bearer {token}".encode()), (b"content-type", b"application/json")],
     )
     # endpoint should raise HTTPException which will propagate as exception
@@ -157,7 +156,7 @@ def test_validate_token_helper_invalid_issuer(monkeypatch):
 
 def test_submit_missing_token():
     req = _make_request(
-        json.dumps({"statementHandle": "abcd"}).encode(),
+        json.dumps({"execution_id": "abcd"}).encode(),
         [(b"content-type", b"application/json")],
     )
     try:
@@ -242,7 +241,7 @@ def test_audit_middleware_receives_audit_payload(monkeypatch):
     client = TestClient(fastapi_app)
     res = client.post(
         "/api/v1/submit",
-        json={"statementHandle": "abcd"},
+        json={"execution_id": "abcd"},
         headers={"authorization": f"Bearer {token}"},
     )
     assert res.status_code == 200

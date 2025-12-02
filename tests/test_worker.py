@@ -1,8 +1,8 @@
+import json
+
 import pyarrow as pa
 import pyarrow.parquet as pq
-
 from app.worker import process_statement
-import json
 
 
 class FakeSnapshot:
@@ -51,7 +51,7 @@ def make_table(num_rows: int):
 def test_process_statement_single_batch(monkeypatch):
     # Sample job
     job = {
-        "statementHandle": "3ef2a90c-357f-4f89-96d5-69e832008839",
+        "execution_id": "3ef2a90c-357f-4f89-96d5-69e832008839",
         "sqlText": "SELECT 1",
         "status": "queued",
         "submitted_by": "bastian",
@@ -81,7 +81,7 @@ def test_process_statement_single_batch(monkeypatch):
     monkeypatch.setattr(pq, "write_table", fake_write_table)
 
     # Run the worker
-    process_statement(job["statementHandle"], batch_size=100_000, bucket="opteryx_results")
+    process_statement(job["execution_id"], batch_size=100_000, bucket="opteryx_results")
 
     # We should have written a single part
     assert len(writes) == 1
@@ -91,7 +91,7 @@ def test_process_statement_single_batch(monkeypatch):
 def test_process_statement_multiple_batches(monkeypatch):
     # Create job
     job = {
-        "statementHandle": "test-multi",
+        "execution_id": "test-multi",
         "sqlText": "SELECT 1",
         "status": "queued",
         "submitted_by": "bastian",
@@ -116,7 +116,7 @@ def test_process_statement_multiple_batches(monkeypatch):
 
     monkeypatch.setattr(pq, "write_table", fake_write_table)
 
-    process_statement(job["statementHandle"], batch_size=10_000, bucket="opteryx_results")
+    process_statement(job["execution_id"], batch_size=10_000, bucket="opteryx_results")
     assert len(writes) == 3
     assert writes[0].endswith("part_0000.parquet")
     assert writes[1].endswith("part_0001.parquet")
@@ -126,7 +126,7 @@ def test_process_statement_multiple_batches(monkeypatch):
 def test_manifest_written(monkeypatch):
     # Create job
     job = {
-        "statementHandle": "manifest-test",
+        "execution_id": "manifest-test",
         "sqlText": "SELECT 1",
         "status": "queued",
         "submitted_by": "bastian",
@@ -182,15 +182,13 @@ def test_manifest_written(monkeypatch):
 
     monkeypatch.setattr(pa.fs.FileSystem, "from_uri", fake_from_uri)
 
-    process_statement(job["statementHandle"], batch_size=100_000, bucket="opteryx_results")
+    process_statement(job["execution_id"], batch_size=100_000, bucket="opteryx_results")
 
     # Manifest should have been written in addition to a part file
     assert any(p.endswith("part_0000.parquet") for p in writes)
     # The manifest path should end with manifest.json; it is captured in the fake FS writes
     # Find the fake FS used above by calling from_uri again
-    _, path = pa.fs.FileSystem.from_uri(
-        f"gs://opteryx_results/{job['statementHandle']}/manifest.json"
-    )
+    _, path = pa.fs.FileSystem.from_uri(f"gs://opteryx_results/{job['execution_id']}/manifest.json")
     assert "manifest.json" in path
     manifest_out = fake_fs.writes.get(path)
     assert manifest_out is not None
