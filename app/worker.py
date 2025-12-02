@@ -110,12 +110,11 @@ def process_statement(
     job = doc.to_dict()
     sql = job.get("sqlText")
     if not sql:
-        doc_ref.update({"status": "FAILED", "error": "missing sqlText"})
+        doc_ref.update({"status": "FAILED", "error": "missing sqlText", "updated_at": firestore.SERVER_TIMESTAMP, "finished_at": firestore.SERVER_TIMESTAMP})
         return
 
     # update to EXECUTING
-    now = datetime.datetime.now(tz=datetime.timezone.utc)
-    doc_ref.update({"status": "EXECUTING", "updated_at": now, "progress": 0})
+    doc_ref.update({"status": "EXECUTING", "updated_at": firestore.SERVER_TIMESTAMP, "started_at": firestore.SERVER_TIMESTAMP})
 
     try:
         with OpteryxConnection() as conn:
@@ -160,14 +159,13 @@ def process_statement(
             _write_parquet_table(last_table, gcs_path)
             parts.append((part_name, buffered_rows))
 
-        print(type(cursor))
-        print(type(cursor.schema))
-        print(cursor.schema)
-
         # Write manifest with metadata next to the parquet files
         manifest = {
             "parts": [
-                {"path": f"gs://{bucket}/{statement_handle}/{pname}", "rows": rows}
+                {
+                    "path": f"gs://{bucket}/{statement_handle}/{pname}", 
+                    "rows": rows
+                }
                 for pname, rows in parts
             ],
             "total_parts": len(parts),
@@ -185,6 +183,7 @@ def process_statement(
             {
                 "status": "COMPLETED",
                 "updated_at": firestore.SERVER_TIMESTAMP,
+                "finished_at": firestore.SERVER_TIMESTAMP,
                 "statistics": statistics,
             }
         )
@@ -193,7 +192,7 @@ def process_statement(
     except Exception as exc:  # pragma: no cover - errors bubble for production
         logger.exception("Error executing statement %s", statement_handle)
         doc_ref.update(
-            {"status": "FAILED", "error": str(exc), "updated_at": firestore.SERVER_TIMESTAMP}
+            {"status": "FAILED", "error": str(exc), "updated_at": firestore.SERVER_TIMESTAMP, "finished_at": firestore.SERVER_TIMESTAMP}
         )
         raise
 
