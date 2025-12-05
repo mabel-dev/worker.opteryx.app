@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime
-import logging
 from typing import Any
 from typing import List
 from typing import Tuple
@@ -12,11 +11,12 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from google.cloud import firestore
 from opteryx.connectors.iceberg_connector import IcebergConnector
+from orso.logging import get_logger
 
 from app.adapters.firestore_catalog import FirestoreCatalog
 from app.core import _get_firestore_client
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 opteryx_catalog = FirestoreCatalog(
     "opteryx",
