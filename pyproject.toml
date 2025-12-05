@@ -8,21 +8,22 @@ version = "0.0.0"
 description = "Opteryx Data Service"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi==0.101.0",
-    "uvicorn[standard]==0.23.2",
-    "python-jose[cryptography]==3.3.0",
-    "cryptography>=40.0.0",
-    "requests>=2.30.0",
-    "python-multipart>=0.0.6",
-    "google-cloud-secret-manager>=2.19.0",
-    "google-cloud-firestore>=2.10.0",
-    "google-cloud-tasks>=2.11.0",
-    "google-cloud-storage",
-    "orjson>=3.9.0",
-    "orso",
-    "opteryx==0.26.1",
-    "pyarrow",
-    "zstandard"
+    "cryptography==46.0.3",
+    "fastapi==0.123.9",
+    "google-cloud-firestore==2.21.0",
+    "google-cloud-secret-manager==2.25.0",
+    "google-cloud-storage==3.6.0",
+    "google-cloud-tasks==2.20.0",
+    "orjson==3.11.4",
+    "orso==0.0.226",
+    "opteryx==0.26.2b1965",
+    "pyarrow==22.0.0",
+    "pyiceberg==0.10.0",
+    "python-jose[cryptography]==3.5.0",
+    "python-multipart==0.0.20",
+    "requests==2.32.5",
+    "uvicorn[standard]==0.38.0",
+    "zstandard==0.25.0"
 ]
 
 [tool.isort]
