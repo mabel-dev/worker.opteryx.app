@@ -12,8 +12,8 @@ import pyarrow.parquet as pq
 from google.cloud import firestore
 from opteryx.connectors.iceberg_connector import IcebergConnector
 from orso.logging import get_logger
+from pyiceberg_firestore_gcs import FirestoreCatalog
 
-from app.adapters.firestore_catalog import FirestoreCatalog
 from app.core import _get_firestore_client
 
 logger = get_logger()

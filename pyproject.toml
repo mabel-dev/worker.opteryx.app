@@ -19,6 +19,7 @@ dependencies = [
     "opteryx==0.26.2b1965",
     "pyarrow==22.0.0",
     "pyiceberg==0.10.0",
+    "pyiceberg-firestore-gcs==0.1.1",
     "python-jose[cryptography]==3.5.0",
     "python-multipart==0.0.20",
     "requests==2.32.5",
