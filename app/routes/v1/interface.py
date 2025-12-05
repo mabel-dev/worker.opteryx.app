@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import Request
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import JSONResponse as HttpResponse
 
 from app.auth import validate_token_from_request
 from app.worker import process_statement
@@ -9,13 +9,8 @@ from app.worker import process_statement
 router = APIRouter(prefix="/api/v1", tags=["v1"])
 
 
-@router.post("/submit", response_class=ORJSONResponse)
+@router.post("/submit", response_class=HttpResponse, status_code=202)
 async def submit(request: Request):
-    """
-    Accept a job and return a response payload. The response includes an
-    `audit` key which is an ORJSON-serializable object the middleware will
-    parse and include in the audit log.
-    """
     claims = validate_token_from_request(request)
     sub = claims.get("sub")
     # Validate expected GPC subject
@@ -24,10 +19,10 @@ async def submit(request: Request):
 
     job = await request.json()
 
-    # Process the statement (may be monkeypatched in tests)
-    execution_summary = process_statement(job.get("execution_id"))
+    # Process the statement
+    process_statement(job.get("execution_id"))
 
-    return execution_summary
+    return
 
 
 __all__ = ["router"]

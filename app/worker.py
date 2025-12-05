@@ -210,10 +210,17 @@ def process_statement(
                 "statistics": statistics,
             }
         )
-        return statistics
+
+        execution_log = statistics
+        execution_log["statement_handle"] = statement_handle
+        execution_log["statement"] = sql
+        execution_log["result_manifest"] = manifest
+        logger.audit(execution_log)
+
+        return
 
     except Exception as exc:  # pragma: no cover - errors bubble for production
-        logger.exception("Error executing statement %s", statement_handle)
+        logger.exception(f"Error executing statement {statement_handle}")
         doc_ref.update(
             {
                 "status": "FAILED",
