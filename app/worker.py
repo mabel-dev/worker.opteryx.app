@@ -10,10 +10,24 @@ import opteryx
 import orjson
 import pyarrow as pa
 import pyarrow.parquet as pq
-from app.core import _get_firestore_client
 from google.cloud import firestore
+from opteryx.connectors.iceberg_connector import IcebergConnector
+
+from app.adapters.firestore_catalog import FirestoreCatalog
+from app.core import _get_firestore_client
 
 logger = logging.getLogger(__name__)
+
+opteryx_catalog = FirestoreCatalog(
+    "opteryx",
+    firestore_project="mabeldev",
+    firestore_database="catalogs",
+    gcs_bucket="opteryx_data",
+)
+
+opteryx.register_store(
+    prefix="opteryx", connector=IcebergConnector, remove_prefix=True, catalog=opteryx_catalog
+)
 
 
 class OpteryxConnection:

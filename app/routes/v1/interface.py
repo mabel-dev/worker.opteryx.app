@@ -1,9 +1,10 @@
-from app.auth import validate_token_from_request
-from app.worker import process_statement
 from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import Request
 from fastapi.responses import ORJSONResponse
+
+from app.auth import validate_token_from_request
+from app.worker import process_statement
 
 router = APIRouter(prefix="/api/v1", tags=["v1"])
 
