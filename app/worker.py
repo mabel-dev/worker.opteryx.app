@@ -142,6 +142,8 @@ def process_statement(
         }
     )
 
+    total_size_estimate = 0
+
     try:
         with OpteryxConnection() as conn:
             cursor = conn.cursor()
@@ -176,6 +178,7 @@ def process_statement(
                 buffered_batches = []
                 buffered_rows = 0
                 part_index += 1
+                total_size_estimate += buffered_bytes
 
         # At the end write any remaining buffered batches as the final part.
         if buffered_batches:
@@ -185,6 +188,9 @@ def process_statement(
             _write_parquet_table(last_table, gcs_path)
             parts.append((part_name, buffered_rows))
 
+        total_rows = sum(rows for _, rows in parts)
+        columns = [{"name": f.name, "type": f.type} for f in cursor.schema.columns]
+
         # Write manifest with metadata next to the parquet files
         manifest = {
             "parts": [
@@ -192,11 +198,12 @@ def process_statement(
                 for pname, rows in parts
             ],
             "total_parts": len(parts),
-            "total_rows": sum(rows for _, rows in parts),
+            "total_rows": total_rows,
+            "total_size_estimate": total_size_estimate,
             "compression": "zstd",
             "compression_level": 2,
             "write_statistics": False,
-            "columns": [{"name": f.name, "type": f.type} for f in cursor.schema.columns],
+            "columns": columns,
             "created_at": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
         }
         manifest_path = f"gs://{bucket}/{statement_handle}/manifest.json"
@@ -208,6 +215,10 @@ def process_statement(
                 "updated_at": firestore.SERVER_TIMESTAMP,
                 "finished_at": firestore.SERVER_TIMESTAMP,
                 "statistics": statistics,
+                "result_manifest": manifest,
+                "total_rows": total_rows,
+                "columns": columns,
+                "total_size_estimate": total_size_estimate,
             }
         )
 
