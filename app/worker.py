@@ -215,7 +215,7 @@ def process_statement(
                 "updated_at": firestore.SERVER_TIMESTAMP,
                 "finished_at": firestore.SERVER_TIMESTAMP,
                 "statistics": statistics,
-                "result_manifest": manifest,
+                "result_manifest": manifest_path,
                 "total_rows": total_rows,
                 "columns": columns,
                 "total_size_estimate": total_size_estimate,
