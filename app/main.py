@@ -1,3 +1,6 @@
+import os
+
+import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from orso.logging import get_logger
@@ -17,3 +20,13 @@ app.add_middleware(AuditMiddleware)
 app.include_router(routes_router)
 
 __all__ = ["app"]
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=port,
+        log_level="info",
+        access_log=True,
+    )
