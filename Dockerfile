@@ -24,5 +24,6 @@ ENV PATH=/home/norris/.venv/bin:$PATH
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ls
-CMD python main.py
+WORKDIR /app/src
+ENV PYTHONPATH /app/src
+CMD ["python", "/app/src/main.py"]
