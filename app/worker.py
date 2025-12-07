@@ -26,8 +26,9 @@ opteryx_catalog = FirestoreCatalog(
 )
 
 opteryx.register_store(
-    prefix="opteryx", connector=IcebergConnector, remove_prefix=True, catalog=opteryx_catalog
+    prefix="_default", connector=IcebergConnector, remove_prefix=True, catalog=opteryx_catalog
 )
+opteryx.
 
 
 class OpteryxConnection:
