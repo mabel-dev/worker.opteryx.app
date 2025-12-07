@@ -9,14 +9,13 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy project pyproject from the build context (repository root) and install with uv.
+# Copy project files needed for uv sync
 COPY pyproject.toml ./pyproject.toml
+COPY app ./app
+
 # install uv tool and run `uv sync` to install project dependencies from pyproject.toml
 RUN pip install --no-cache-dir uv && \
     uv sync || (echo "uv sync failed; ensure pyproject.toml is present and valid in the build context" && exit 1)
-
-# Copy service code
-COPY app ./app
 RUN chown -R norris:norris /home/norris
 USER norris
 
@@ -24,4 +23,4 @@ ENV PATH=/home/norris/.venv/bin:$PATH
 ENV PORT=8080
 EXPOSE 8080
 
-CMD python -m uvicorn app.main:application --host 0.0.0.0 --port $PORT --limit-max-requests 2048
+CMD ["/home/norris/.venv/bin/python", "-m", "uvicorn", "app.main:application", "--host", "0.0.0.0", "--port", "8080", "--limit-max-requests", "2048"]
