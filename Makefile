@@ -1,8 +1,6 @@
 PYTHON := python
 PIP := pip
 
-
-
 lint: ## Run all linting tools
 	@echo "Installing linting tools..."
 	@$(PIP) install --quiet --upgrade pycln isort ruff
