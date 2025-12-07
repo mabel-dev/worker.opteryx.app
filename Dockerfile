@@ -31,4 +31,4 @@ EXPOSE 8080
 RUN chmod -R a+rx /home/norris/.venv/bin || true
 
 # Use python -m uvicorn to avoid depending on the console script's execute bit or shebang
-CMD ["sh", "-c", "python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"]
+CMD ["sh", "-c", "/home/norris/.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"]
