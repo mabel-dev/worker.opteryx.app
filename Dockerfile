@@ -22,8 +22,13 @@ RUN chown -R norris:norris /home/norris
 RUN chmod -R 755 /home/norris
 USER norris
 
+# Copy service code
+COPY app ./app
+RUN chown -R norris:norris /home/norris
+USER norris
+
 ENV PATH=/home/norris/.venv/bin:$PATH
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["/home/norris/.venv/bin/python", "-m", "uvicorn", "app.main:application", "--host", "0.0.0.0", "--port", "8080"]
+CMD uvicorn app.main:application --host 0.0.0.0 --port $PORT
