@@ -186,7 +186,9 @@ def process_statement(
             part_name = f"part_{part_index:04d}.parquet"
             gcs_path = f"gs://{bucket}/{statement_handle}/{part_name}"
             _write_parquet_table(last_table, gcs_path)
-            parts.append((part_name, buffered_rows))
+            last_table_size = _estimate_table_bytes(last_table)
+            parts.append((part_name, buffered_rows, last_table_size))
+            total_size_estimate += last_table_size
 
         total_rows = sum(rows for _, rows in parts)
         columns = [{"name": f.name, "type": f.type} for f in cursor.schema.columns]
@@ -194,8 +196,12 @@ def process_statement(
         # Write manifest with metadata next to the parquet files
         manifest = {
             "parts": [
-                {"path": f"gs://{bucket}/{statement_handle}/{pname}", "rows": rows}
-                for pname, rows in parts
+                {
+                    "path": f"gs://{bucket}/{statement_handle}/{pname}",
+                    "rows": rows,
+                    "approx_size": approx_size,
+                }
+                for pname, rows, approx_size in parts
             ],
             "total_parts": len(parts),
             "total_rows": total_rows,
@@ -231,7 +237,7 @@ def process_statement(
         return
 
     except Exception as exc:  # pragma: no cover - errors bubble for production
-        logger.exception(f"Error executing statement {statement_handle}")
+        logger.error(f"Error executing statement {statement_handle}")
         doc_ref.update(
             {
                 "status": "FAILED",

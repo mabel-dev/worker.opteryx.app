@@ -1,7 +1,10 @@
 import json
 
+import sys
+import types
 import pyarrow as pa
 import pyarrow.parquet as pq
+sys.modules.setdefault("opteryx", types.SimpleNamespace())
 from app.worker import process_statement
 
 
@@ -198,3 +201,14 @@ def test_manifest_written(monkeypatch):
     assert "columns" in manifest
     assert manifest["columns"][0]["name"] == "id"
     assert "int" in manifest["columns"][0]["type"]
+    # Ensure the document update included a total size estimate that covers
+    # the final part; we expect it to be > 0 for a non-empty result set.
+    # Find the last update that contains 'status' == 'COMPLETED' and check
+    # the 'total_size_estimate' value.
+    docref = db.collection("jobs").document(job["execution_id"])
+    # There may be multiple updates; find the completed update
+    completed_updates = [u for u in docref.updates if u.get("status") == "COMPLETED"]
+    assert completed_updates, "No COMPLETED update found"
+    completed = completed_updates[-1]
+    assert "total_size_estimate" in completed
+    assert completed["total_size_estimate"] > 0
