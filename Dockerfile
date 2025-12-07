@@ -23,4 +23,4 @@ ENV PATH=/home/norris/.venv/bin:$PATH
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["/home/norris/.venv/bin/python", "-m", "uvicorn", "app.main:application", "--host", "0.0.0.0", "--port", "8080", "--limit-max-requests", "2048"]
+CMD /home/norris/.venv/bin/python -m uvicorn app.main:application --host 0.0.0.0 --port $PORT --limit-max-requests 2048
