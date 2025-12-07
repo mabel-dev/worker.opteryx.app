@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "opteryx-data"
+name = "opteryx-worker"
 version = "0.0.0"
-description = "Opteryx Data Service"
+description = "Opteryx Execution Worker"
 requires-python = "==3.13"
 dependencies = [
     "cryptography==46.0.3",

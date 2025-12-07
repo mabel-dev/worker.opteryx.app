@@ -12,10 +12,10 @@ RUN apt-get update \
 # Copy project pyproject from the build context (repository root) and install with uv.
 COPY pyproject.toml ./pyproject.toml
 # install uv tool and run `uv sync` to install project dependencies from pyproject.toml
-RUN pip install --no-cache-dir uv && \
-    uv sync || (echo "uv sync failed; ensure pyproject.toml is present and valid in the build context" && exit 1)
+RUN python -m pip install --no-cache-dir uv && \
+    python -m uv pip install -r pyproject.toml
 
-# Copy service code
+    # Copy service code
 COPY app ./app
 RUN chown -R norris:norris /home/norris
 # Explicitly set permissions to ensure executables can be run
