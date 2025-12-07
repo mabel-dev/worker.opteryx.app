@@ -4,7 +4,19 @@ import sys
 import types
 import pyarrow as pa
 import pyarrow.parquet as pq
-sys.modules.setdefault("opteryx", types.SimpleNamespace())
+# Create a minimal 'opteryx' package with the attributes used by app.worker so
+# importing app.worker does not fail in environments where the real package
+# isn't installed.
+opteryx_pkg = types.ModuleType("opteryx")
+opteryx_pkg.register_store = lambda *a, **k: None
+opteryx_pkg.connect = lambda *a, **k: None
+opteryx_pkg.connectors = types.ModuleType("opteryx.connectors")
+iceberg_module = types.ModuleType("opteryx.connectors.iceberg_connector")
+setattr(iceberg_module, "IcebergConnector", type("IcebergConnector", (), {}))
+setattr(opteryx_pkg.connectors, "iceberg_connector", iceberg_module)
+sys.modules["opteryx"] = opteryx_pkg
+sys.modules["opteryx.connectors"] = opteryx_pkg.connectors
+sys.modules["opteryx.connectors.iceberg_connector"] = iceberg_module
 from app.worker import process_statement
 
 
