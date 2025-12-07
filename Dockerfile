@@ -27,4 +27,8 @@ ENV PATH=/home/norris/.venv/bin:$PATH
 ENV PORT=8080
 EXPOSE 8080
 
-CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT
+# Ensure virtualenv console scripts are executable (defensive for some installers)
+RUN chmod -R a+rx /home/norris/.venv/bin || true
+
+# Use python -m uvicorn to avoid depending on the console script's execute bit or shebang
+CMD ["sh", "-c", "python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"]
