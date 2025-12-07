@@ -13,18 +13,18 @@ set_log_name("opteryx.worker")
 logger = get_logger()
 logger.setLevel(5)
 
-app = FastAPI(title="Opteryx Worker", default_response_class=ORJSONResponse)
-app.add_middleware(AuditMiddleware)
+application = FastAPI(title="Opteryx Worker", default_response_class=ORJSONResponse)
+application.add_middleware(AuditMiddleware)
 
 # include routes
-app.include_router(routes_router)
+application.include_router(routes_router)
 
-__all__ = ["app"]
+__all__ = ["application"]
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     uvicorn.run(
-        "main:app",
+        "main:application",
         host="0.0.0.0",
         port=port,
         log_level="info",
