@@ -15,13 +15,6 @@ COPY pyproject.toml ./pyproject.toml
 RUN python -m pip install --no-cache-dir uv && \
     python -m uv pip install -r pyproject.toml
 
-    # Copy service code
-COPY app ./app
-RUN chown -R norris:norris /home/norris
-# Explicitly set permissions to ensure executables can be run
-RUN chmod -R 755 /home/norris
-USER norris
-
 # Copy service code
 COPY app ./app
 RUN chown -R norris:norris /home/norris
