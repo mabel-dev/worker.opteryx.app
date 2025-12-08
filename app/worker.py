@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import os
 from typing import Any
 from typing import List
 from typing import Tuple
@@ -18,36 +19,23 @@ from app.core import _get_firestore_client
 
 logger = get_logger()
 
-opteryx_catalog = FirestoreCatalog(
-    "opteryx",
-    firestore_project="mabeldev",
-    firestore_database="catalogs",
-    gcs_bucket="opteryx_data",
-)
+SIZE_THRESHOLD_BYTES = 256 * 1024 * 1024  # 256 MB
+FIRESTORE_DATABASE = os.environ.get("FIRESTORE_DATABASE")
+BUCKET_NAME = os.environ.get("GCS_BUCKET")
+GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
 
 opteryx.register_store(
-    prefix="_default", connector=IcebergConnector, remove_prefix=True, catalog=opteryx_catalog
+    prefix="_default",
+    connector=IcebergConnector,
+    remove_prefix=True,
+    catalog=FirestoreCatalog,
+    firestore_project=GCP_PROJECT_ID,
+    firestore_database=FIRESTORE_DATABASE,
+    gcs_bucket=BUCKET_NAME,
 )
-
-
-class OpteryxConnection:
-    def __init__(self):
-        self.connection = None
-
-    def __enter__(self):
-        self.connection = opteryx.connect()
-        return self.connection
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if self.connection:
-            self.connection.close()
-
 
 def _doc_ref_for_handle(db: Any, handle: str):
     return db.collection("jobs").document(handle)
-
-
-SIZE_THRESHOLD_BYTES = 256 * 1024 * 1024  # 256 MB
 
 
 def _estimate_table_bytes(table: pa.Table) -> int:
@@ -145,7 +133,7 @@ def process_statement(
     total_size_estimate = 0
 
     try:
-        with OpteryxConnection() as conn:
+        with opteryx.connection() as conn:
             cursor = conn.cursor()
             cursor.execute(sql)
             statistics = cursor.stats

@@ -4,6 +4,7 @@ import sys
 import types
 import pyarrow as pa
 import pyarrow.parquet as pq
+
 # Create a minimal 'opteryx' package with the attributes used by app.worker so
 # importing app.worker does not fail in environments where the real package
 # isn't installed.
