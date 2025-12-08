@@ -136,7 +136,7 @@ def process_statement(
         with opteryx.connect() as conn:
             cursor = conn.cursor()
             cursor.execute(sql)
-            statistics = cursor.stats
+            telemetry = cursor.telemetry
 
         # Iterate batches and write parquet files. We'll accumulate batches
         # (each batch is at most `batch_size` rows) until the accumulated
@@ -208,7 +208,7 @@ def process_statement(
                 "status": "COMPLETED",
                 "updated_at": firestore.SERVER_TIMESTAMP,
                 "finished_at": firestore.SERVER_TIMESTAMP,
-                "statistics": statistics,
+                "telemetry": telemetry,
                 "result_manifest": manifest_path,
                 "total_rows": total_rows,
                 "columns": columns,
