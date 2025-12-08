@@ -14,7 +14,7 @@ dependencies = [
     "google-cloud-secret-manager==2.25.0",
     "google-cloud-storage==3.6.0",
     "google-cloud-tasks==2.20.0",
-    "orjson==3.11.4",
+    "orjson==3.11.5",
     "orso==0.0.226",
     "opteryx-core==0.1.4b19",
     "pyarrow==22.0.0",
