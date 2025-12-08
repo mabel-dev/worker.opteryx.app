@@ -144,7 +144,7 @@ def process_statement(
         part_index = 0
         buffered_batches: List[pa.RecordBatch] = []
         buffered_rows = 0
-        parts: List[Tuple[str, int]] = []  # (filename, rows)
+        parts: List[Tuple[str, int, int]] = []  # (filename, rows, approx_size)
 
         for batch in cursor.arrow().to_batches(max_chunksize=batch_size):
             buffered_batches.append(batch)
@@ -161,7 +161,7 @@ def process_statement(
                 gcs_path = f"gs://{bucket}/{statement_handle}/{part_name}"
                 # Write the parquet file with zstd compression and disabled statistics
                 _write_parquet_table(buffered_table, gcs_path)
-                parts.append((part_name, buffered_rows))
+                parts.append((part_name, buffered_rows, buffered_bytes))
                 # Reset buffers
                 buffered_batches = []
                 buffered_rows = 0
@@ -178,7 +178,7 @@ def process_statement(
             parts.append((part_name, buffered_rows, last_table_size))
             total_size_estimate += last_table_size
 
-        total_rows = sum(rows for _, rows in parts)
+        total_rows = sum(rows for _, rows, _ in parts)
         columns = [{"name": f.name, "type": f.type} for f in cursor.schema.columns]
 
         # Write manifest with metadata next to the parquet files
@@ -226,6 +226,7 @@ def process_statement(
 
     except Exception as exc:  # pragma: no cover - errors bubble for production
         logger.error(f"Error executing statement {statement_handle}")
+        
         doc_ref.update(
             {
                 "status": "FAILED",
