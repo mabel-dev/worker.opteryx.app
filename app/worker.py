@@ -216,7 +216,7 @@ def process_statement(
             }
         )
 
-        execution_log = statistics
+        execution_log = telemetry
         execution_log["statement_handle"] = statement_handle
         execution_log["statement"] = sql
         execution_log["result_manifest"] = manifest
