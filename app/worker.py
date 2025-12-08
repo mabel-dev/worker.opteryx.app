@@ -27,7 +27,7 @@ GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
 opteryx.register_store(
     prefix="_default",
     connector=IcebergConnector,
-    remove_prefix=True,
+    remove_prefix=False,
     catalog=FirestoreCatalog,
     firestore_project=GCP_PROJECT_ID,
     firestore_database=FIRESTORE_DATABASE,
