@@ -133,7 +133,7 @@ def process_statement(
     total_size_estimate = 0
 
     try:
-        with opteryx.connection() as conn:
+        with opteryx.connect() as conn:
             cursor = conn.cursor()
             cursor.execute(sql)
             statistics = cursor.stats
