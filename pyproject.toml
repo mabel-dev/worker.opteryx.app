@@ -9,10 +9,10 @@ description = "Opteryx Execution Worker"
 requires-python = "==3.13"
 dependencies = [
     "cryptography==46.0.3",
-    "fastapi==0.123.9",
+    "fastapi==0.124.2",
     "google-cloud-firestore==2.21.0",
     "google-cloud-secret-manager==2.25.0",
-    "google-cloud-storage==3.6.0",
+    "google-cloud-storage==3.7.0",
     "google-cloud-tasks==2.20.0",
     "orjson==3.11.5",
     "orso==0.0.226",
@@ -24,7 +24,7 @@ dependencies = [
     "python-multipart==0.0.20",
     "requests==2.32.5",
     "uvicorn[standard]==0.38.0",
-    "zstandard==0.25.0"
+    "zstandard==0.25.0",
 ]
 
 [tool.isort]
