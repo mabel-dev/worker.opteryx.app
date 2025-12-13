@@ -134,7 +134,7 @@ def process_statement(
 
     try:
         with opteryx.connect() as conn:
-            cursor = conn.cursor()
+            cursor = conn.cursor(qid=statement_handle)
             cursor.execute(sql)
             telemetry = cursor.telemetry
 
