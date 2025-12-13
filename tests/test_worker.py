@@ -68,7 +68,7 @@ def test_process_statement_single_batch(monkeypatch):
     # Sample job
     job = {
         "execution_id": "3ef2a90c-357f-4f89-96d5-69e832008839",
-        "sqlText": "SELECT 1",
+        "sql_text": "SELECT 1",
         "status": "queued",
         "submitted_by": "bastian",
     }
@@ -108,7 +108,7 @@ def test_process_statement_multiple_batches(monkeypatch):
     # Create job
     job = {
         "execution_id": "test-multi",
-        "sqlText": "SELECT 1",
+        "sql_text": "SELECT 1",
         "status": "queued",
         "submitted_by": "bastian",
     }
@@ -143,7 +143,7 @@ def test_manifest_written(monkeypatch):
     # Create job
     job = {
         "execution_id": "manifest-test",
-        "sqlText": "SELECT 1",
+        "sql_text": "SELECT 1",
         "status": "queued",
         "submitted_by": "bastian",
     }

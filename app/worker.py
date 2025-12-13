@@ -109,12 +109,12 @@ def process_statement(
         raise ValueError(f"No job found for handle: {statement_handle}")
 
     job = doc.to_dict()
-    sql = job.get("sqlText")
+    sql = job.get("sql_text")
     if not sql:
         doc_ref.update(
             {
                 "status": "FAILED",
-                "error": "missing sqlText",
+                "error": "missing sql_text",
                 "updated_at": firestore.SERVER_TIMESTAMP,
                 "finished_at": firestore.SERVER_TIMESTAMP,
             }
@@ -134,7 +134,7 @@ def process_statement(
 
     try:
         with opteryx.connect() as conn:
-            cursor = conn.cursor()
+            cursor = conn.cursor(qid=statement_handle)
             cursor.execute(sql)
             telemetry = cursor.telemetry
 
