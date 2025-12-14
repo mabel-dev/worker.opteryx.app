@@ -16,7 +16,7 @@ dependencies = [
     "google-cloud-tasks==2.20.0",
     "orjson==3.11.5",
     "orso==0.0.226",
-    "opteryx-core==0.2.0b48",
+    "opteryx-core==0.2.0b49",
     "pyarrow==22.0.0",
     "pyiceberg==0.10.0",
     "pyiceberg-firestore-gcs==0.1.4",
