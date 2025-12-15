@@ -34,6 +34,7 @@ opteryx.register_store(
     gcs_bucket=BUCKET_NAME,
 )
 
+
 def _doc_ref_for_handle(db: Any, handle: str):
     return db.collection("jobs").document(handle)
 
@@ -134,7 +135,7 @@ def process_statement(
 
     try:
         with opteryx.connect() as conn:
-            #cursor = conn.cursor(qid=statement_handle)
+            # cursor = conn.cursor(qid=statement_handle)
             cursor = conn.cursor()
             cursor.execute(sql)
             telemetry = cursor.telemetry
@@ -227,7 +228,7 @@ def process_statement(
 
     except Exception as exc:  # pragma: no cover - errors bubble for production
         logger.error(f"Error executing statement {statement_handle}")
-        
+
         doc_ref.update(
             {
                 "status": "FAILED",
