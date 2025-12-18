@@ -8,6 +8,6 @@ AR_REPOSITORY=${AR_REPOSITORY:-cloud-run-source-deploy}
 IMAGE=${AR_REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPOSITORY}/opteryx-worker:latest
 
 echo "Building ${IMAGE}..."
-docker build -t "${IMAGE}" .
+docker build --platform linux/amd64 -t "${IMAGE}" .
 echo "Pushing ${IMAGE} to Artifact Registry..."
 docker push "${IMAGE}"

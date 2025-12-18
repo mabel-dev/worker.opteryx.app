@@ -15,20 +15,20 @@ WORKDIR /app
 # Copy only the files needed for dependency installation
 COPY pyproject.toml ./
 
-# Install dependencies into a virtual environment
-RUN uv venv /opt/venv && \
-    VIRTUAL_ENV=/opt/venv uv pip install --no-cache -r pyproject.toml
+# Create a virtual environment and install dependencies
+RUN uv venv /opt/venv
+RUN uv pip install --no-cache --python /opt/venv/bin/python -r pyproject.toml
 
 # Stage 2: Final
 FROM python:3.13-slim
 
-# Install runtime dependencies
+# Install runtime dependencies (libgomp1 is required by pyarrow)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user 'norris'
-RUN useradd --create-home norris
+RUN useradd --create-home --shell /bin/bash norris
 WORKDIR /home/norris
 
 # Copy the virtual environment from the builder
@@ -36,7 +36,9 @@ COPY --from=builder /opt/venv /opt/venv
 
 # Copy service code
 COPY app ./app
-RUN chown -R norris:norris /home/norris
+
+# Ensure the non-root user owns the app and the venv
+RUN chown -R norris:norris /home/norris /opt/venv
 
 # Set environment variables
 ENV PATH="/opt/venv/bin:$PATH"
@@ -47,5 +49,6 @@ EXPOSE 8080
 
 USER norris
 
-# Use shell form to allow $PORT expansion from the environment
-CMD uvicorn app.main:application --host 0.0.0.0 --port ${PORT:-8080}
+# Use the shell form of CMD to allow $PORT expansion from the environment
+# We use 'python -m uvicorn' to ensure we use the venv's interpreter
+CMD python -m uvicorn app.main:application --host 0.0.0.0 --port ${PORT:-8080}

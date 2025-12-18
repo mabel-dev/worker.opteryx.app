@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "opteryx-worker"
 version = "0.0.4"
 description = "Opteryx Execution Worker"
-requires-python = "==3.13"
+requires-python = ">=3.13"
 dependencies = [
     "cryptography==46.0.3",
     "fastapi==0.124.2",
