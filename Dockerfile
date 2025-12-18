@@ -33,6 +33,7 @@ FROM gcr.io/distroless/cc-debian12
 
 # Copy Python runtime from the builder
 COPY --from=builder /usr/local/lib/python3.13 /usr/local/lib/python3.13
+COPY --from=builder /usr/local/lib/libpython3.13.so.1.0 /usr/local/lib/libpython3.13.so.1.0
 COPY --from=builder /usr/local/bin/python3.13 /usr/local/bin/python3.13
 COPY --from=builder /usr/local/bin/python3 /usr/local/bin/python3
 
@@ -49,6 +50,7 @@ COPY --from=builder /app/entrypoint.py ./entrypoint.py
 
 # Set environment variables
 ENV PATH="/opt/venv/bin:$PATH"
+ENV LD_LIBRARY_PATH="/usr/local/lib"
 ENV PYTHONPATH="/app"
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8080
