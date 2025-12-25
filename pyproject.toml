@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opteryx-worker"
-version = "0.0.5"
+version = "0.0.6"
 description = "Opteryx Execution Worker"
 requires-python = ">=3.13"
 dependencies = [
@@ -16,7 +16,7 @@ dependencies = [
     "google-cloud-tasks==2.20.0",
     "orjson==3.11.5",
     "orso==0.0.226",
-    "opteryx-core==0.2.0b59",
+    "opteryx-core==0.2.0b61",
     "pyarrow==22.0.0",
     "pyiceberg==0.10.0",
     "pyiceberg-firestore-gcs==0.2.*",
