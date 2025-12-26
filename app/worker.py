@@ -24,10 +24,8 @@ FIRESTORE_DATABASE = os.environ.get("FIRESTORE_DATABASE")
 BUCKET_NAME = os.environ.get("GCS_BUCKET")
 GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
 
-opteryx.register_store(
-    prefix="_default",
-    connector=IcebergConnector,
-    remove_prefix=False,
+opteryx.set_default_connector(
+    IcebergConnector,
     catalog=FirestoreCatalog,
     firestore_project=GCP_PROJECT_ID,
     firestore_database=FIRESTORE_DATABASE,
