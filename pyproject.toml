@@ -17,7 +17,7 @@ dependencies = [
     "minio==7.2.20",
     "orjson==3.11.5",
     "orso==0.0.226",
-    "opteryx-core==0.3.0b89",
+    "opteryx-core==0.3.0b90",
     "pyarrow==22.0.0",
     "pyiceberg==0.10.0",
     "pyiceberg-firestore-gcs==0.3.0",
