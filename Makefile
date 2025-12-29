@@ -13,3 +13,6 @@ lint: ## Run all linting tools
 	@echo "Formatting code..."
 	@$(PYTHON) -m ruff format $(SRC_DIR)
 	@echo "Linting complete!"
+
+run:
+	uvicorn app.main:application --host 0.0.0.0 --port 8885
