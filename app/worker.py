@@ -7,19 +7,22 @@ from typing import Any
 from typing import List
 from typing import Tuple
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../opteryx-core")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../pyiceberg-firestore-gcs")))
-
 import opteryx
 import orjson
 import pyarrow as pa
 import pyarrow.parquet as pq
 from google.cloud import firestore
-from opteryx.connectors.iceberg_connector import IcebergConnector
+from opteryx.connectors import OpteryxConnector
+from opteryx_catalog import OpteryxCatalog
 from orso.logging import get_logger
-from opteryx_catalog.firestore_catalog import FirestoreCatalog
 
 from app.core import _get_firestore_client
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../opteryx-core")))
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../pyiceberg-firestore-gcs"))
+)
+
 
 logger = get_logger()
 
@@ -29,8 +32,8 @@ BUCKET_NAME = os.environ.get("GCS_BUCKET")
 GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID")
 
 opteryx.set_default_connector(
-    IcebergConnector,
-    catalog=FirestoreCatalog,
+    OpteryxConnector,
+    catalog=OpteryxCatalog,
     firestore_project=GCP_PROJECT_ID,
     firestore_database=FIRESTORE_DATABASE,
     gcs_bucket=BUCKET_NAME,
