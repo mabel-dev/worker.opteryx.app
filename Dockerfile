@@ -50,4 +50,4 @@ USER norris
 
 # Use the shell form of CMD to allow $PORT expansion from the environment
 # We use 'python -m uvicorn' to ensure we use the venv's interpreter
-CMD exec python -m uvicorn app.main:application --host 0.0.0.0 --port ${PORT:-8080}
+CMD exec python -m uvicorn app.main:service --host 0.0.0.0 --port ${PORT:-8080}

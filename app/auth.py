@@ -1,10 +1,5 @@
-"""Authentication helpers for the service.
-
-This module centralizes token parsing and validation logic so multiple
-endpoints can reuse it. The primary exported function is
-`validate_token_from_request(request, expected_sub)` which will extract the
-bearer token, validate signature via `app.secret_store` and verify the `sub`
-claim equals the expected GPC subject.
+"""
+Authentication helpers for the service.
 """
 
 from __future__ import annotations

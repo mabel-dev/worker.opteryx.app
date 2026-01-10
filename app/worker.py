@@ -142,7 +142,7 @@ def process_statement(
         with opteryx.connect() as conn:
             # cursor = conn.cursor(qid=statement_handle)
             cursor = conn.cursor()
-            cursor.execute(sql)
+            batches = cursor.query_to_arrow_batches(sql, batch_size=batch_size)
             telemetry = cursor.telemetry
 
         # Iterate batches and write parquet files. We'll accumulate batches
@@ -153,7 +153,7 @@ def process_statement(
         buffered_rows = 0
         parts: List[Tuple[str, int, int]] = []  # (filename, rows, approx_size)
 
-        for batch in cursor.arrow().to_batches(max_chunksize=batch_size):
+        for batch in batches:
             buffered_batches.append(batch)
             buffered_rows += batch.num_rows
 

@@ -10,11 +10,13 @@ helper used by both the adapter and routes modules.
 from __future__ import annotations
 
 import os
+from functools import lru_cache
 from typing import Optional
 
 from google.cloud import firestore
 
 
+@lru_cache(maxsize=1)
 def _get_firestore_client() -> Optional[firestore.Client]:
     """Return a Firestore client for the current project, or None on error.
 
