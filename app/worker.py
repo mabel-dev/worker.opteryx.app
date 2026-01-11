@@ -140,50 +140,50 @@ def process_statement(
 
     try:
         with opteryx.connect() as conn:
-            # cursor = conn.cursor(qid=statement_handle)
-            cursor = conn.cursor()
+            cursor = conn.cursor(qid=statement_handle)
             batches = cursor.execute_to_arrow_batches(sql, batch_size=batch_size)
-            telemetry = cursor.telemetry
 
-        # Iterate batches and write parquet files. We'll accumulate batches
-        # (each batch is at most `batch_size` rows) until the accumulated
-        # Table is >= SIZE_THRESHOLD_BYTES, then we'll write that part.
-        part_index = 0
-        buffered_batches: List[pa.RecordBatch] = []
-        buffered_rows = 0
-        parts: List[Tuple[str, int, int]] = []  # (filename, rows, approx_size)
+            # Iterate batches and write parquet files. We'll accumulate batches
+            # (each batch is at most `batch_size` rows) until the accumulated
+            # Table is >= SIZE_THRESHOLD_BYTES, then we'll write that part.
+            part_index = 0
+            buffered_batches: List[pa.RecordBatch] = []
+            buffered_rows = 0
+            parts: List[Tuple[str, int, int]] = []  # (filename, rows, approx_size)
 
-        for batch in batches:
-            buffered_batches.append(batch)
-            buffered_rows += batch.num_rows
+            for batch in batches:
+                buffered_batches.append(batch)
+                buffered_rows += batch.num_rows
 
-            # Estimate bytes for the accumulated buffered batches
-            buffered_table = pa.Table.from_batches(buffered_batches)
-            buffered_bytes = _estimate_table_bytes(buffered_table)
+                # Estimate bytes for the accumulated buffered batches
+                buffered_table = pa.Table.from_batches(buffered_batches)
+                buffered_bytes = _estimate_table_bytes(buffered_table)
 
-            # When we exceed threshold (or at least one batch was collected and
-            # this batch pushed us over), flush to a parquet part file.
-            if buffered_bytes >= SIZE_THRESHOLD_BYTES:
+                # When we exceed threshold (or at least one batch was collected and
+                # this batch pushed us over), flush to a parquet part file.
+                if buffered_bytes >= SIZE_THRESHOLD_BYTES:
+                    part_name = f"part_{part_index:04d}.parquet"
+                    gcs_path = f"gs://{bucket}/{statement_handle}/{part_name}"
+                    # Write the parquet file with zstd compression and disabled statistics
+                    _write_parquet_table(buffered_table, gcs_path)
+                    parts.append((part_name, buffered_rows, buffered_bytes))
+                    # Reset buffers
+                    buffered_batches = []
+                    buffered_rows = 0
+                    part_index += 1
+                    total_size_estimate += buffered_bytes
+
+            # At the end write any remaining buffered batches as the final part.
+            if buffered_batches:
+                last_table = pa.Table.from_batches(buffered_batches)
                 part_name = f"part_{part_index:04d}.parquet"
                 gcs_path = f"gs://{bucket}/{statement_handle}/{part_name}"
-                # Write the parquet file with zstd compression and disabled statistics
-                _write_parquet_table(buffered_table, gcs_path)
-                parts.append((part_name, buffered_rows, buffered_bytes))
-                # Reset buffers
-                buffered_batches = []
-                buffered_rows = 0
-                part_index += 1
-                total_size_estimate += buffered_bytes
+                _write_parquet_table(last_table, gcs_path)
+                last_table_size = _estimate_table_bytes(last_table)
+                parts.append((part_name, buffered_rows, last_table_size))
+                total_size_estimate += last_table_size
 
-        # At the end write any remaining buffered batches as the final part.
-        if buffered_batches:
-            last_table = pa.Table.from_batches(buffered_batches)
-            part_name = f"part_{part_index:04d}.parquet"
-            gcs_path = f"gs://{bucket}/{statement_handle}/{part_name}"
-            _write_parquet_table(last_table, gcs_path)
-            last_table_size = _estimate_table_bytes(last_table)
-            parts.append((part_name, buffered_rows, last_table_size))
-            total_size_estimate += last_table_size
+            telemetry = cursor.telemetry
 
         total_rows = sum(rows for _, rows, _ in parts)
         columns = [{"name": f.name, "type": f.type} for f in cursor.schema.columns]
