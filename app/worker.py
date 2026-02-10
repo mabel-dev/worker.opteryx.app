@@ -105,12 +105,22 @@ def process_statement(
     On success the Firestore document status will be set to COMPLETED.
     On errors, the status will be set to FAILED and the error stored on the document.
     """
+    if not statement_handle:
+        raise ValueError("statement_handle cannot be empty")
+    
+    logger.info(f"Processing statement: {statement_handle}")
+    
     db = _get_firestore_client()
     if db is None:
         raise RuntimeError("Firestore client unavailable")
 
-    doc_ref = _doc_ref_for_handle(db, statement_handle)
-    doc = doc_ref.get()
+    try:
+        doc_ref = _doc_ref_for_handle(db, statement_handle)
+        doc = doc_ref.get()
+    except Exception as db_exc:
+        logger.error(f"Failed to get Firestore document for handle {statement_handle}: {db_exc}")
+        raise RuntimeError(f"Failed to retrieve job {statement_handle}: {str(db_exc)}") from db_exc
+    
     if not doc.exists:
         raise ValueError(f"No job found for handle: {statement_handle}")
 
@@ -235,16 +245,23 @@ def process_statement(
         return
 
     except Exception as exc:  # pragma: no cover - errors bubble for production
-        logger.error(f"Error executing statement {statement_handle}")
+        error_msg = f"{type(exc).__name__}: {str(exc)}"
+        logger.error(f"Error executing statement {statement_handle}: {error_msg}")
 
-        doc_ref.update(
-            {
-                "status": "FAILED",
-                "error": str(exc),
-                "updated_at": firestore.SERVER_TIMESTAMP,
-                "finished_at": firestore.SERVER_TIMESTAMP,
-            }
-        )
+        # Try to update Firestore to mark as FAILED, but don't fail if that fails
+        try:
+            doc_ref.update(
+                {
+                    "status": "FAILED",
+                    "error": error_msg,
+                    "updated_at": firestore.SERVER_TIMESTAMP,
+                    "finished_at": firestore.SERVER_TIMESTAMP,
+                }
+            )
+        except Exception as update_exc:
+            logger.error(f"Failed to update Firestore after error: {update_exc}")
+        
+        # Re-raise the original exception
         raise
 
 
