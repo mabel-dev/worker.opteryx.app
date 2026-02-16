@@ -1,5 +1,5 @@
 # Stage 1: Builder
-FROM python:3.13-slim AS builder
+FROM python:3.14t-slim AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -19,7 +19,7 @@ RUN uv pip install --no-cache --python /opt/venv/bin/python -r pyproject.toml
 
 # Stage 2: Final
 # We use the same base image as the builder to ensure GLIBC compatibility
-FROM python:3.13-slim
+FROM python:3.14t-slim
 
 # Install runtime dependencies (libgomp1 is required by pyarrow)
 RUN apt-get update && apt-get install -y --no-install-recommends \
