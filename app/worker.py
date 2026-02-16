@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import json
 import os
 import sys
 from typing import Any
@@ -8,7 +9,6 @@ from typing import List
 from typing import Tuple
 
 import opteryx
-import orjson
 import pyarrow as pa
 import pyarrow.parquet as pq
 from google.cloud import firestore
@@ -89,7 +89,7 @@ def _write_manifest(manifest: dict, manifest_path: str):
     fs, path = pa.fs.FileSystem.from_uri(manifest_path)
     # Write JSON to the output stream
     with fs.open_output_stream(path) as out:
-        out.write(orjson.dumps(manifest))
+        out.write(json.dumps(manifest).encode())
 
 
 def process_statement(
@@ -107,9 +107,9 @@ def process_statement(
     """
     if not statement_handle:
         raise ValueError("statement_handle cannot be empty")
-    
+
     logger.info(f"Processing statement: {statement_handle}")
-    
+
     db = _get_firestore_client()
     if db is None:
         raise RuntimeError("Firestore client unavailable")
@@ -120,7 +120,7 @@ def process_statement(
     except Exception as db_exc:
         logger.error(f"Failed to get Firestore document for handle {statement_handle}: {db_exc}")
         raise RuntimeError(f"Failed to retrieve job {statement_handle}: {str(db_exc)}") from db_exc
-    
+
     if not doc.exists:
         raise ValueError(f"No job found for handle: {statement_handle}")
 
@@ -260,7 +260,7 @@ def process_statement(
             )
         except Exception as update_exc:
             logger.error(f"Failed to update Firestore after error: {update_exc}")
-        
+
         # Re-raise the original exception
         raise
 

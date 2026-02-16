@@ -82,15 +82,15 @@ class AuditMiddleware(BaseHTTPMiddleware):
 
                 if body_bytes:
                     try:
-                        import orjson as _orjson  # local import to keep deps explicit
+                        import json as _json  # local import to keep deps explicit
 
-                        parsed = _orjson.loads(body_bytes)
+                        parsed = _json.loads(body_bytes)
                         if isinstance(parsed, dict) and "audit" in parsed:
                             payload["response_audit"] = parsed["audit"]
-                    except (TypeError, ValueError):
+                    except TypeError, ValueError:
                         # best-effort: do not crash auditing if parsing fails
                         pass
-            except (AttributeError, RuntimeError, TypeError):
+            except AttributeError, RuntimeError, TypeError:
                 # best-effort: no-op if we cannot inspect response body
                 pass
 

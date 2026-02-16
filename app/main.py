@@ -2,7 +2,7 @@ import os
 
 import uvicorn
 from fastapi import FastAPI
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import JSONResponse
 from orso.logging import get_logger
 from orso.logging import set_log_name
 
@@ -13,7 +13,7 @@ set_log_name("opteryx.worker")
 logger = get_logger()
 logger.setLevel(5)
 
-service = FastAPI(title="Opteryx Worker", default_response_class=ORJSONResponse)
+service = FastAPI(title="Opteryx Worker", default_response_class=JSONResponse)
 service.add_middleware(AuditMiddleware)
 
 # include routes

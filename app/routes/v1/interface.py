@@ -21,7 +21,7 @@ async def submit(request: Request):
 
     job = await request.json()
     execution_id = job.get("execution_id")
-    
+
     if not execution_id:
         raise HTTPException(status_code=400, detail="Missing execution_id")
 
