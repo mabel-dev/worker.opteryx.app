@@ -15,7 +15,7 @@ dependencies = [
     "google-cloud-storage==3.9.0",
     "google-cloud-tasks==2.21.0",
     "minio==7.2.20",
-    "orso==0.0.226",
+    "orso==0.0.239",
     "opteryx-catalog==0.4.*",
     "opteryx-core==0.6.*",
     "pyarrow==23.0.0",
