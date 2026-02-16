@@ -1,5 +1,5 @@
 # Stage 1: Builder
-FROM python:3.14t-slim AS builder
+FROM python:3.13-slim AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -13,13 +13,13 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /app
 COPY pyproject.toml ./
 
-# Create a virtual environment and install dependencies
-RUN uv venv /opt/venv
+# Create a virtual environment with Python 3.14 free-threaded and install dependencies
+RUN uv venv --python=3.14t /opt/venv
 RUN uv pip install --no-cache --python /opt/venv/bin/python -r pyproject.toml
 
 # Stage 2: Final
-# We use the same base image as the builder to ensure GLIBC compatibility
-FROM python:3.14t-slim
+# Use a minimal base image; the venv will carry Python 3.14t runtime
+FROM debian:trixie-slim
 
 # Install runtime dependencies (libgomp1 is required by pyarrow)
 RUN apt-get update && apt-get install -y --no-install-recommends \
