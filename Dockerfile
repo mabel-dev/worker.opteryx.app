@@ -13,13 +13,13 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /app
 COPY pyproject.toml ./
 
-# Create a virtual environment with Python 3.13  and install dependencies
-RUN uv venv --python=3.13 /opt/venv
+# Create a virtual environment and install dependencies
+RUN uv venv /opt/venv
 RUN uv pip install --no-cache --python /opt/venv/bin/python -r pyproject.toml
 
 # Stage 2: Final
-# Use a minimal base image; the venv will carry Python 3.13 runtime
-FROM debian:trixie-slim
+# We use the same base image as the builder to ensure GLIBC compatibility
+FROM python:3.13-slim
 
 # Install runtime dependencies (libgomp1 is required by pyarrow)
 RUN apt-get update && apt-get install -y --no-install-recommends \
