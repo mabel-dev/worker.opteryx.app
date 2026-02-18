@@ -39,7 +39,7 @@ ensure_newline_before_comments = true
 [tool.ruff]
 line-length = 100
 indent-width = 4
-target-version = 'py314'
+target-version = 'py313'
 
 [tool.ruff.format]
 docstring-code-format = true

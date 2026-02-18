@@ -87,10 +87,10 @@ class AuditMiddleware(BaseHTTPMiddleware):
                         parsed = _json.loads(body_bytes)
                         if isinstance(parsed, dict) and "audit" in parsed:
                             payload["response_audit"] = parsed["audit"]
-                    except TypeError, ValueError:
+                    except (TypeError, ValueError):
                         # best-effort: do not crash auditing if parsing fails
                         pass
-            except AttributeError, RuntimeError, TypeError:
+            except (AttributeError, RuntimeError, TypeError):
                 # best-effort: no-op if we cannot inspect response body
                 pass
 
