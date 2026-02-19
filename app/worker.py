@@ -67,13 +67,15 @@ def _write_parquet_table(table: pa.Table, gcs_path: str) -> int:
     """
     # Disable writing statistics, avoid dictionary encoding (can slow writes),
     # and prefer Parquet v2 data page format for better I/O behavior.
-    pq_write_kwargs = dict(
-        compression="zstd",
-        compression_level=2,
-        write_statistics=False,
-        use_dictionary=False,
-        data_page_version="2.0",
-    )
+    pq_write_kwargs = {
+        "compression": "zstd",
+        "compression_level": 2,
+        "write_statistics": False,
+        "use_dictionary": False,
+        "data_page_version": "2.0",
+        "row_group_size": 64 * 1024 * 1024,
+        "version": "2.6",
+    }
     pq.write_table(table, gcs_path, **pq_write_kwargs)
     # We don't have a good way to read the remote file's bytes without extra
     # filesystem APIs here. Return -1 to indicate unknown.
